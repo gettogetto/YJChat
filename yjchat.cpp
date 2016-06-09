@@ -7,6 +7,7 @@
 #include<qprocess.h>
 #include<qnetworkinterface.h>
 #include<qdatetime.h>
+
 #include"ClientToServer.h"
 #include "yjchat.h"
 
@@ -17,8 +18,6 @@ YJChat::YJChat(QWidget *parent)
 	m_client_to_server = new ClientToServer(this);
 	init_udp();
 	init_connection();
-
-	
 }
 
 YJChat::~YJChat()
@@ -43,8 +42,8 @@ void YJChat::init_connection() {
 	connect(ui.m_sendButton, SIGNAL(clicked()), this, SLOT(sendButton_clicked()));
 	connect(ui.m_serverIp_okButton, SIGNAL(clicked()), m_client_to_server, SLOT(set_server_ip()));
 	connect(m_udp_socket, SIGNAL(readyRead()), this, SLOT(read_and_process_datagram()));
-	//rename emit signal
-	connect(ui.m_tableWidget, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(send_new_username(QTableWidgetItem*)));
+	//to do rename emit signal
+	//
 }
 QString YJChat::get_userName() {
 	QStringList envVariables;
@@ -101,9 +100,11 @@ void YJChat::sendButton_clicked() {
 
 	}
 }
-
+//receive from other client's message or server's newest tablewidget information(online,offline,update) 
 void YJChat::read_and_process_datagram() {
+	QMutexLocker mutexLocker(&m_mutex);
 	while (m_udp_socket->hasPendingDatagrams()) {
+		
 
 		QByteArray datagram;
 		datagram.resize(m_udp_socket->pendingDatagramSize());
@@ -168,13 +169,26 @@ void YJChat::read_and_process_datagram() {
 		//let the server to fixed the tablewidget
 		case UPDATE:
 		{
+			//QString userName;
+			//QString localHostName;
+			//QString ip;
+
+			//dataStream >> userName >> localHostName >> ip;
+			//tableWidget_update_userName(userName, ip, current_time);
+			
+			break;
+		}
+		case ALLTABLEUPDATE:
+		{
+			qDebug() << "ALLTABLEUPDATE";
+			//ui.m_tableWidget->clear();
 			QString userName;
 			QString localHostName;
 			QString ip;
 
 			dataStream >> userName >> localHostName >> ip;
-			tableWidget_update_userName(userName, ip, current_time);
-			
+
+			tableWidget_add_one(userName, localHostName, ip);
 			break;
 		}
 		default:break;

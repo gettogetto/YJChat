@@ -2,15 +2,17 @@
 #define YJCHAT_H
 
 #include <QtWidgets/QMainWindow>
+#include<qmutex.h>
 #include "ui_yjchat.h"
 class QUdpSocket;
 class ClientToServer;
+
 class YJChat : public QMainWindow
 {
 	Q_OBJECT
 
 public:
-	enum MESSAGETYPE{MESSAGE,ONEONLINE,ONEOFFLINE,UPDATE};
+	enum MESSAGETYPE{MESSAGE,ONEONLINE,ONEOFFLINE,UPDATE, ALLTABLEUPDATE};
 	YJChat(QWidget *parent = 0);
 	~YJChat();
 
@@ -24,6 +26,7 @@ private:
 	QUdpSocket *m_udp_socket;//client to client
 	ClientToServer* m_client_to_server;
 	qint16 m_port;
+	QMutex m_mutex;
 
 private:
 	void init_udp();

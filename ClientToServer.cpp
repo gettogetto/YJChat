@@ -16,6 +16,7 @@ ClientToServer::ClientToServer(YJChat* parent):QObject(parent)
 
 ClientToServer::~ClientToServer()
 {
+
 }
 
 void ClientToServer::init_udp() {
