@@ -104,8 +104,7 @@ void YJChat::sendButton_clicked() {
 void YJChat::read_and_process_datagram() {
 	QMutexLocker mutexLocker(&m_mutex);
 	while (m_udp_socket->hasPendingDatagrams()) {
-		
-
+	
 		QByteArray datagram;
 		datagram.resize(m_udp_socket->pendingDatagramSize());
 		//read the coming datagram
@@ -181,14 +180,18 @@ void YJChat::read_and_process_datagram() {
 		case ALLTABLEUPDATE:
 		{
 			qDebug() << "ALLTABLEUPDATE";
-			//ui.m_tableWidget->clear();
+			//for (int i = 0; i < ui.m_tableWidget->rowCount(); i++) {
+				//ui.m_tableWidget->removeRow(0);
+			//}
+			ui.m_tableWidget->clearContents();
 			QString userName;
 			QString localHostName;
 			QString ip;
-
-			dataStream >> userName >> localHostName >> ip;
-
-			tableWidget_add_one(userName, localHostName, ip);
+			while (!dataStream.atEnd()) {
+				dataStream >> userName >> localHostName >> ip;
+				qDebug() << userName << localHostName << ip;
+				tableWidget_add_one(userName, localHostName, ip);
+			}
 			break;
 		}
 		default:break;
