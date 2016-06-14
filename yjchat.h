@@ -3,9 +3,13 @@
 
 #include <QtWidgets/QMainWindow>
 #include<qmutex.h>
+#include<vector>
 #include "ui_yjchat.h"
+#include"ui_client2client.h"
+#include"PersonInformation.h"
 class QUdpSocket;
 class ClientToServer;
+class ClientToClient;
 
 class YJChat : public QMainWindow
 {
@@ -21,10 +25,15 @@ public:
 	void read_and_process_datagram();
 	void send_new_username(QTableWidgetItem*);
 
+	void new_client_to_client_dialog(QTableWidgetItem *);
+
 private:
 	Ui::YJChatClass ui;
-	QUdpSocket *m_udp_socket;//client to client
+
+	QUdpSocket *m_udp_socket;
 	ClientToServer* m_client_to_server;
+	//ClientToClient* m_client_to_client;
+	std::vector<ClientToClient*> m_client_to_client_vec;
 	qint16 m_port;
 	QMutex m_mutex;
 

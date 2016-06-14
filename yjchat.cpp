@@ -9,13 +9,18 @@
 #include<qdatetime.h>
 
 #include"ClientToServer.h"
+#include"ClientToClient.h"
 #include "yjchat.h"
+
 
 YJChat::YJChat(QWidget *parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
+	ui.m_tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 	m_client_to_server = new ClientToServer(this);
+	//m_client_to_client = new ClientToClient(this);
+
 	init_udp();
 	init_connection();
 }
@@ -42,6 +47,7 @@ void YJChat::init_connection() {
 	connect(ui.m_sendButton, SIGNAL(clicked()), this, SLOT(sendButton_clicked()));
 	connect(ui.m_serverIp_okButton, SIGNAL(clicked()), m_client_to_server, SLOT(set_server_ip()));
 	connect(m_udp_socket, SIGNAL(readyRead()), this, SLOT(read_and_process_datagram()));
+	connect(ui.m_tableWidget, SIGNAL(itemDoubleClicked(QTableWidgetItem *)), this, SLOT(new_client_to_client_dialog(QTableWidgetItem *)));
 	//to do rename emit signal
 	//
 }
@@ -104,7 +110,7 @@ void YJChat::sendButton_clicked() {
 void YJChat::read_and_process_datagram() {
 	QMutexLocker mutexLocker(&m_mutex);
 	while (m_udp_socket->hasPendingDatagrams()) {
-	
+
 		QByteArray datagram;
 		datagram.resize(m_udp_socket->pendingDatagramSize());
 		//read the coming datagram
@@ -174,7 +180,7 @@ void YJChat::read_and_process_datagram() {
 
 			//dataStream >> userName >> localHostName >> ip;
 			//tableWidget_update_userName(userName, ip, current_time);
-			
+
 			break;
 		}
 		case ALLTABLEUPDATE:
@@ -206,11 +212,11 @@ void YJChat::send_new_username(QTableWidgetItem* item) {
 	QByteArray datagram;
 	QDataStream dataStream(&datagram, QIODevice::WriteOnly);
 	dataStream.setVersion(QDataStream::Qt_5_6);
-	
+
 	QString userName = item->text();
 	QString localHostName = QHostInfo::localHostName();
 	QString ip = get_ip();
-	
+
 
 	dataStream << MESSAGETYPE::UPDATE << userName << localHostName << ip;
 
@@ -218,6 +224,32 @@ void YJChat::send_new_username(QTableWidgetItem* item) {
 
 	m_client_to_server->send_message_to_server(datagram);
 }
+//when double click the table,emit this func
+void YJChat::new_client_to_client_dialog(QTableWidgetItem* item) {
+
+	qDebug() << "new_client_to_client_dialog";
+	Ui::p2pDialog *ui_dialog = new Ui::p2pDialog();
+	QDialog* dialog = new QDialog(this);
+	PersonInformation personSelf(
+		get_userName(),
+		QHostInfo::localHostName(),
+		get_ip()
+		);
+	PersonInformation personOppo(
+		ui.m_tableWidget->item(item->row(), 0)->text(),
+		ui.m_tableWidget->item(item->row(), 1)->text(),
+		ui.m_tableWidget->item(item->row(), 2)->text()
+		);
+	//to fixed
+	ClientToClient* tmp = new ClientToClient(personSelf, personOppo, this);
+	tmp->m_p2pui = ui_dialog;
+	tmp->m_p2pDialog = dialog;
+	m_client_to_client_vec.push_back(tmp);
+	ui_dialog->setupUi(dialog);
+	dialog->setWindowTitle(tr("Talking with ") + personOppo.m_name + '@' + personOppo.m_ip);//set the dialog title =talking with some one
+	dialog->show();
+}
+
 
 void YJChat::new_one_connected() {
 	qDebug() << "new_one_connected()";
@@ -270,9 +302,9 @@ void YJChat::tableWidget_update_userName(const QString& userName, const QString&
 	auto list = ui.m_tableWidget->findItems(ip, Qt::MatchExactly);
 	if (!list.isEmpty()) {
 		if (ui.m_tableWidget->itemAt(list[0]->row(), 0)->text() == userName) return;
- 		ui.m_textBrowser->setTextColor(Qt::darkGray);
+		ui.m_textBrowser->setTextColor(Qt::darkGray);
 		ui.m_textBrowser->setCurrentFont(QFont("Times New Roman", 12));
-		ui.m_textBrowser->append("[ " + ui.m_tableWidget->itemAt(list[0]->row(),0)->text() + " ] " + " renamed to be" + "[" + userName + "]" + current_time);
+		ui.m_textBrowser->append("[ " + ui.m_tableWidget->itemAt(list[0]->row(), 0)->text() + " ] " + " renamed to be" + "[" + userName + "]" + current_time);
 
 
 		ui.m_tableWidget->itemAt(QPoint(list[0]->row(), list[0]->column()))->setText(QString(userName));
