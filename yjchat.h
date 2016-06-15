@@ -32,10 +32,14 @@ private:
 
 	QUdpSocket *m_udp_socket;
 	ClientToServer* m_client_to_server;
-	//ClientToClient* m_client_to_client;
+	ClientToClient* m_newClientToClient;
 	std::vector<ClientToClient*> m_client_to_client_vec;
 	qint16 m_port;
 	QMutex m_mutex;
+
+	QString m_self_name;
+	QString m_self_hostName;
+	QString m_self_ip;
 
 private:
 	void init_udp();

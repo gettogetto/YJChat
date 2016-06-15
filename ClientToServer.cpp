@@ -22,7 +22,7 @@ ClientToServer::~ClientToServer()
 void ClientToServer::init_udp() {
 	
 	m_server_port = 6666;
-	m_server_ip = "222.205.105.254";//get the server ip from the lineEdit
+	m_server_ip = "10.12.13.99";//get the server ip from the lineEdit
 	m_udp_socket_toServer = new QUdpSocket(m_parent);
 
 }

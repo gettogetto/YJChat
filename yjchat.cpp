@@ -28,6 +28,7 @@ YJChat::YJChat(QWidget *parent)
 YJChat::~YJChat()
 {
 	emit one_left();//when a user left emit the signal one_left()
+	
 }
 void YJChat::init_udp() {
 	/********************************UDP*********************************************/
@@ -93,9 +94,9 @@ void YJChat::sendButton_clicked() {
 		QByteArray datagram;
 		QDataStream dataStream(&datagram, QIODevice::WriteOnly);
 		dataStream.setVersion(QDataStream::Qt_5_6);
-		QString userName = get_userName();
-		QString localHostName = QHostInfo::localHostName();
-		QString ip = get_ip();
+		QString userName = m_self_name/*get_userName()*/;
+		QString localHostName = m_self_hostName/*QHostInfo::localHostName()*/;
+		QString ip = m_self_ip/*get_ip()*/;
 		QString message = ui.m_textEdit->toPlainText();
 
 		dataStream << MESSAGETYPE::MESSAGE << userName << localHostName << ip << message;
@@ -228,12 +229,12 @@ void YJChat::send_new_username(QTableWidgetItem* item) {
 void YJChat::new_client_to_client_dialog(QTableWidgetItem* item) {
 
 	qDebug() << "new_client_to_client_dialog";
-	Ui::p2pDialog *ui_dialog = new Ui::p2pDialog();
-	QDialog* dialog = new QDialog(this);
+	Ui::p2pDialog *ui_dialog = new Ui::p2pDialog();//will delete when ClientToClient destroy
+	QDialog* dialog = new QDialog();//will delete when ClientToClient destroy
 	PersonInformation personSelf(
-		get_userName(),
-		QHostInfo::localHostName(),
-		get_ip()
+		m_self_name,
+		m_self_hostName,
+		m_self_ip
 		);
 	PersonInformation personOppo(
 		ui.m_tableWidget->item(item->row(), 0)->text(),
@@ -241,11 +242,8 @@ void YJChat::new_client_to_client_dialog(QTableWidgetItem* item) {
 		ui.m_tableWidget->item(item->row(), 2)->text()
 		);
 	//to fixed
-	ClientToClient* tmp = new ClientToClient(personSelf, personOppo, this);
-	tmp->m_p2pui = ui_dialog;
-	tmp->m_p2pDialog = dialog;
-	m_client_to_client_vec.push_back(tmp);
-	ui_dialog->setupUi(dialog);
+	ClientToClient* newClientToClient = new ClientToClient(personSelf, personOppo, ui_dialog, dialog, this);
+
 	dialog->setWindowTitle(tr("Talking with ") + personOppo.m_name + '@' + personOppo.m_ip);//set the dialog title =talking with some one
 	dialog->show();
 }
@@ -256,9 +254,13 @@ void YJChat::new_one_connected() {
 	QByteArray datagram;
 	QDataStream dataStream(&datagram, QIODevice::WriteOnly);
 	dataStream.setVersion(QDataStream::Qt_5_6);
-	QString userName = get_userName();
+
+	QString userName = get_userName(); 
+	m_self_name = userName;
 	QString localHostName = QHostInfo::localHostName();
-	QString ip = get_ip();
+	m_self_hostName = localHostName;
+	QString ip = get_ip(); 
+	m_self_ip = ip;
 
 	dataStream << MESSAGETYPE::ONEONLINE << userName << localHostName << ip;
 
@@ -271,13 +273,12 @@ void YJChat::one_left() {
 	QByteArray datagram;
 	QDataStream dataStream(&datagram, QIODevice::WriteOnly);
 	dataStream.setVersion(QDataStream::Qt_5_6);
-	QString userName = get_userName();
-	QString localHostName = QHostInfo::localHostName();
-	QString ip = get_ip();
+	QString userName = m_self_name/*get_userName()*/;
+	QString localHostName = m_self_hostName/*QHostInfo::localHostName()*/;
+	QString ip = m_self_ip/*get_ip()*/;
 
 	dataStream << MESSAGETYPE::ONEOFFLINE << userName << localHostName << ip;
 
-	//m_udp_socket->writeDatagram(datagram, QHostAddress::Broadcast, m_port);
 	m_client_to_server->send_message_to_server(datagram);
 }
 /*receive from the server and update the tablewidget*/
@@ -287,7 +288,7 @@ void YJChat::tableWidget_add_one(const QString& userName, const QString& hostNam
 	ui.m_tableWidget->setItem(0, 0, new QTableWidgetItem(userName));
 	ui.m_tableWidget->setItem(0, 1, new QTableWidgetItem(hostName));
 	ui.m_tableWidget->setItem(0, 2, new QTableWidgetItem(ip));
-
+	
 }
 
 void YJChat::tableWidget_delete_one(const QString& ip) {

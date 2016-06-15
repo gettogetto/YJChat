@@ -9,6 +9,7 @@ class QTableWidgetItem;
 class QTcpSocket;
 class QUdpSocket;
 class QDialog;
+class QCloseEvent;
 class ClientToClient:public QWidget
 {
 	Q_OBJECT
@@ -27,7 +28,12 @@ private:
 
 	PersonInformation m_personInformationSelf;//self information
 public:
-	ClientToClient(const PersonInformation& personInformationSelf,const PersonInformation& personInformationOppo,YJChat* parent=nullptr);
+	ClientToClient(const PersonInformation& personInformationSelf,
+		const PersonInformation& personInformationOppo, 
+		Ui::p2pDialog* p2pui=nullptr , 
+		QDialog* p2pDialog=nullptr,
+		YJChat* parent=nullptr
+		);
 	~ClientToClient();
 
 	void init_udp();
@@ -36,6 +42,9 @@ public:
 	void init_connection();
 	public slots:
 	void send_button_clicked();
+	void read_and_process_datagram();
+	void close_button_clicked();
+
 
 	friend class YJChat;
 };
