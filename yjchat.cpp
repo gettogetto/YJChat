@@ -230,7 +230,7 @@ void YJChat::new_client_to_client_dialog(QTableWidgetItem* item) {
 
 	qDebug() << "new_client_to_client_dialog";
 	Ui::p2pDialog *ui_dialog = new Ui::p2pDialog();//will delete when ClientToClient destroy
-	QDialog* dialog = new QDialog();//will delete when ClientToClient destroy
+	QDialog* dialog = new QDialog();
 	PersonInformation personSelf(
 		m_self_name,
 		m_self_hostName,

@@ -39,16 +39,14 @@ void ClientToClient::init_udp() {
 }
 
 void ClientToClient::init_tcp() {
-	m_tcp_socket = new QTcpSocket();
-	m_tcp_port = 3333;
-	m_tcp_socket->bind(QHostAddress(m_personInformationSelf.m_ip), m_tcp_port);
+	m_file_tcp_socket_dialog = new FileTcpSocketDialog(m_personInformationSelf, m_personInformationOppo,m_p2pDialog);
 }
 
 void ClientToClient::init_connection() {
 	connect(m_p2pui->m_sendButton, SIGNAL(clicked()), this, SLOT(send_button_clicked()));
 	connect(m_udp_socket, SIGNAL(readyRead()), this, SLOT(read_and_process_datagram()));
 	connect(m_p2pui->m_closeButton, SIGNAL(clicked()),this, SLOT(close_button_clicked()));
-
+	connect(m_p2pui->m_sendFileButton, SIGNAL(clicked()), m_file_tcp_socket_dialog, SLOT(show()));
 }
 //sendMessage
 void ClientToClient::send_button_clicked() {
@@ -113,10 +111,10 @@ void ClientToClient::read_and_process_datagram() {
 void ClientToClient::close_button_clicked() {
 	qDebug() << "void ClientToClient::close_button_clicked()";
 	m_udp_socket->close();
-	m_tcp_socket->close();
+	//m_tcp_socket->close();
 
 	delete m_udp_socket;
-	delete m_tcp_socket;
+	//delete m_tcp_socket;
 	delete m_p2pui;
 	delete m_p2pDialog;
 }

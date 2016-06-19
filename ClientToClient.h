@@ -4,12 +4,14 @@
 #include<qwidget.h>
 #include"ui_client2client.h"
 #include"PersonInformation.h"
+#include"FileTcpSocketDialog.h"
 class YJChat;
 class QTableWidgetItem;
 class QTcpSocket;
 class QUdpSocket;
 class QDialog;
 class QCloseEvent;
+
 class ClientToClient:public QWidget
 {
 	Q_OBJECT
@@ -21,8 +23,7 @@ private:
 	QUdpSocket* m_udp_socket;
 	qint16 m_udp_port;
 	//tcp
-	QTcpSocket* m_tcp_socket;
-	qint16 m_tcp_port;
+	FileTcpSocketDialog* m_file_tcp_socket_dialog;
 
 	PersonInformation m_personInformationOppo;//opposite side information
 
