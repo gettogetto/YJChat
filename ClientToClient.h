@@ -45,7 +45,7 @@ public:
 	void send_button_clicked();
 	void read_and_process_datagram();
 	void close_button_clicked();
-
+	void show_file_tcp_socket_dialog();
 
 	friend class YJChat;
 };

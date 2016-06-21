@@ -40,13 +40,14 @@ void ClientToClient::init_udp() {
 
 void ClientToClient::init_tcp() {
 	m_file_tcp_socket_dialog = new FileTcpSocketDialog(m_personInformationSelf, m_personInformationOppo,m_p2pDialog);
+	
 }
 
 void ClientToClient::init_connection() {
 	connect(m_p2pui->m_sendButton, SIGNAL(clicked()), this, SLOT(send_button_clicked()));
 	connect(m_udp_socket, SIGNAL(readyRead()), this, SLOT(read_and_process_datagram()));
 	connect(m_p2pui->m_closeButton, SIGNAL(clicked()),this, SLOT(close_button_clicked()));
-	connect(m_p2pui->m_sendFileButton, SIGNAL(clicked()), m_file_tcp_socket_dialog, SLOT(show()));
+	connect(m_p2pui->m_sendFileButton, SIGNAL(clicked()), this, SLOT(show_file_tcp_socket_dialog()));
 }
 //sendMessage
 void ClientToClient::send_button_clicked() {
@@ -110,11 +111,21 @@ void ClientToClient::read_and_process_datagram() {
 
 void ClientToClient::close_button_clicked() {
 	qDebug() << "void ClientToClient::close_button_clicked()";
+	
 	m_udp_socket->close();
-	//m_tcp_socket->close();
 
+	delete m_file_tcp_socket_dialog;
 	delete m_udp_socket;
-	//delete m_tcp_socket;
+
 	delete m_p2pui;
 	delete m_p2pDialog;
+}
+
+void ClientToClient::show_file_tcp_socket_dialog() {
+	
+	m_file_tcp_socket_dialog->ui->m_fileSendProgressBar->reset();
+	//if (m_file_tcp_socket_dialog->m_file_tcp_socket == nullptr) {
+		//m_file_tcp_socket_dialog->init_tcp();
+	//}
+	m_file_tcp_socket_dialog->show();
 }

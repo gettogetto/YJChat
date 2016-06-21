@@ -20,14 +20,15 @@ FileTcpSocketDialog::FileTcpSocketDialog(PersonInformation personInformationSelf
 
 FileTcpSocketDialog::~FileTcpSocketDialog()
 {
-	delete m_file;
+
 }
 void FileTcpSocketDialog::init_tcp() {
 	m_file_tcp_port = 3333;
 	m_file_tcp_socket = new QTcpSocket(this);
 	m_file_tcp_socket->bind(QHostAddress(m_personInformationSelf.m_ip), m_file_tcp_port);
-
+	
 	m_file_tcp_socket->connectToHost(QHostAddress(m_personInformationOppo.m_ip), m_file_tcp_port);
+
 }
 
 void FileTcpSocketDialog::init_connection() {
@@ -44,26 +45,34 @@ void FileTcpSocketDialog::open_file_button_clicked() {
 	m_fileName=QFileDialog::getOpenFileName(this);
 	if (!m_fileName.isEmpty()) {
 		ui->m_sendButton->setEnabled(true);
+		qDebug() << "open file success";
+		return;
 	}
-
+	qDebug() << "open file failed";
 }
 
 void FileTcpSocketDialog::send_file_button_clicked() {
 	qDebug() << "void FileTcpSocketDialog::send_file_button_clicked()";
-	m_file->setFileName(m_fileName);
+	if (!m_file_tcp_socket->isOpen()) {
+		if (!m_file_tcp_socket->open(QIODevice::WriteOnly)) {
+			qDebug() << "socket open failed";
+			return;
+		}
+	}
+
+
+	//m_file->setFileName(m_fileName);
 	//ui->m_fileSendProgressBar->resetFormat();
-	//delete m_file;
-	//m_file = new QFile(m_fileName);
+
+	m_file = new QFile(m_fileName);
 	if (!m_file->open(QIODevice::ReadOnly)) {
-		qDebug() << "open failed";
+		QMessageBox::warning(this, tr("send file"), tr("can not read the file %1:\n%2.").arg(m_fileName).arg(m_file->errorString()));
 		return;
 	}
+	ui->m_sendButton->setEnabled(false);
 	m_file_left_bytes = m_file_total_bytes = m_file->size();
 
-	
-	QByteArray outBlock;
-
-	QDataStream outStream(&outBlock, QIODevice::WriteOnly);
+	QDataStream outStream(&m_outBlock, QIODevice::WriteOnly);
 
 	outStream.setVersion(QDataStream::Version::Qt_5_6);
 
@@ -71,14 +80,14 @@ void FileTcpSocketDialog::send_file_button_clicked() {
 
 	outStream << quint64(0) << quint64(0) << onlyFileName;//totalsize filenamesize filename
 
-	m_file_total_bytes += outBlock.size();
+	m_file_total_bytes += m_outBlock.size();
 	outStream.device()->seek(0);
 
-	outStream << m_file_total_bytes << (outBlock.size() - 2 * sizeof(quint64));
+	outStream << m_file_total_bytes << (m_outBlock.size() - 2 * sizeof(quint64));
 
-	m_file_left_bytes = m_file_total_bytes - m_file_tcp_socket->write(outBlock);
-
-	//outBlock.resize(0);
+	m_file_left_bytes = m_file_total_bytes - m_file_tcp_socket->write(m_outBlock);
+	m_outBlock.resize(0);
+	qDebug() << "void FileTcpSocketDialog::send_file_button_clicked() left";
 }
 
 void FileTcpSocketDialog::update_send_file_process(qint64 bytesWritten) {
@@ -87,8 +96,9 @@ void FileTcpSocketDialog::update_send_file_process(qint64 bytesWritten) {
 	m_file_bytes_written += bytesWritten;
 
 	if (m_file_left_bytes > 0) {
-		QByteArray outBlock = m_file->read(qMin((int)m_file_left_bytes,4080));
-		m_file_left_bytes -= m_file_tcp_socket->write(outBlock);
+		m_outBlock = m_file->read(qMin((int)m_file_left_bytes,4096));
+		m_file_left_bytes -= m_file_tcp_socket->write(m_outBlock);
+		m_outBlock.resize(0);
 	}
 	else {
 		m_file->close();
@@ -107,18 +117,19 @@ void FileTcpSocketDialog::update_send_file_process(qint64 bytesWritten) {
 
 void FileTcpSocketDialog::update_receive_file_process() {
 	qDebug() << "void FileTcpSocketDialog::update_receive_file_process()";
-	QDataStream in(m_file_tcp_socket);
-	in.setVersion(QDataStream::Qt_5_6);
+	QDataStream inStream(m_file_tcp_socket);
+	inStream.setVersion(QDataStream::Qt_5_6);
 
 	if (m_receive_file_bytes_received <= sizeof(quint64) * 2) {
 		if ((m_file_tcp_socket->bytesAvailable() >= sizeof(quint64) * 2) && (m_receive_fileNameSize == 0)) {
-			in >> m_receive_file_total_bytes >> m_receive_fileNameSize;
+			inStream >> m_receive_file_total_bytes >> m_receive_fileNameSize;
 			m_receive_file_bytes_received += sizeof(quint64) * 2;
 		}
 		if ((m_file_tcp_socket->bytesAvailable() >= m_receive_fileNameSize) && (m_receive_fileNameSize != 0)) {
-			in >> m_receive_fileName;
+			inStream >> m_receive_fileName;
 			m_receive_file_bytes_received += m_receive_fileNameSize;
-			m_receive_file->setFileName(m_receive_fileName);//!!
+			//m_receive_file->setFileName(m_receive_fileName);//!!
+			m_receive_file = new QFile(m_receive_fileName);
 			if (!m_receive_file->open(QFile::WriteOnly)) {
 				QMessageBox::warning(this, tr("receive file"), tr("can not read the file %1:\n%2.").arg(m_receive_fileName).arg(m_receive_file->errorString()));
 				return;
@@ -131,8 +142,9 @@ void FileTcpSocketDialog::update_receive_file_process() {
 
 	if (m_receive_file_bytes_received < m_receive_file_total_bytes) {
 		m_receive_file_bytes_received += m_file_tcp_socket->bytesAvailable();
-		QByteArray inBlock = m_file_tcp_socket->readAll();
-		m_receive_file->write(inBlock);
+		m_inBlock = m_file_tcp_socket->readAll();
+		m_receive_file->write(m_inBlock);
+		m_inBlock.resize(0);
 	}
 
 	qDebug() << m_receive_file_bytes_received << "received" << m_receive_file_total_bytes;
@@ -141,12 +153,29 @@ void FileTcpSocketDialog::update_receive_file_process() {
 
 	if (m_receive_file_bytes_received == m_receive_file_total_bytes)
 	{
-		m_file_tcp_socket->close();
-		m_receive_file->close();  //接收完文件后，关闭
+		
+		 m_receive_file->close();  //接收完文件后，关闭
+		 m_receive_file_total_bytes = 0;
+		 //m_receive_file_left_bytes = 0;
+		 m_receive_file_bytes_received = 0;
+		 m_receive_fileNameSize = 0;
 	}
 }
 
 void FileTcpSocketDialog::close_button_clicked() {
-	delete m_file;
+	if(m_file&&m_file->isOpen())
+		m_file->close();
+	if (m_receive_file&&m_receive_file->isOpen())
+		m_receive_file->close();
+	
+	//m_file_tcp_socket->disconnectFromHost();
+	//delete m_file_tcp_socket; 
+	//m_file_tcp_socket = nullptr;
+
 	this->close();
+	
+	qDebug() << "void FileTcpSocketDialog::close_button_clicked() left";
+	
+	//delete m_file;
+	//delete m_receive_file;
 }

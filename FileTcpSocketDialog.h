@@ -13,22 +13,22 @@ public:
 	~FileTcpSocketDialog();
 private:
 	Ui_FileDialog* ui;
-	QTcpSocket* m_file_tcp_socket;//·¢ËÍ
+	QTcpSocket* m_file_tcp_socket=nullptr;//·¢ËÍ
 	quint16 m_file_tcp_port;
 	PersonInformation m_personInformationSelf;
 	PersonInformation m_personInformationOppo;
 
 	QString m_fileName;
-	QFile *m_file= new QFile(this);
+	QFile *m_file=nullptr;// = new QFile(this);
 	quint64 m_file_total_bytes = 0;
 	quint64 m_file_left_bytes = 0;
 	quint64 m_file_bytes_written = 0;
-
+	QByteArray m_outBlock,m_inBlock;
 	/**************receive******************/
 	QString m_receive_fileName;
-	QFile *m_receive_file=new QFile(this);
+	QFile *m_receive_file=nullptr;// = new QFile(this);
 	quint64 m_receive_file_total_bytes = 0;
-	quint64 m_receive_file_left_bytes = 0;
+	//quint64 m_receive_file_left_bytes = 0;
 	quint64 m_receive_file_bytes_received = 0;
 	quint64 m_receive_fileNameSize=0;
 
@@ -45,5 +45,6 @@ private:
 	void update_receive_file_process();
 
 	void close_button_clicked();
+	friend class ClientToClient;
 };
 
